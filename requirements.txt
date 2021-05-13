@@ -16,6 +16,7 @@ scipy==1.6.3
 service-identity==21.1.0
 six==1.16.0
 sklearn==0.0
+telebot==0.0.4
 TelegramBotAPI==0.3.2
 threadpoolctl==2.1.0
 urllib3==1.26.4
