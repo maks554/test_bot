@@ -1,16 +1,21 @@
-import joblib
+import pandas as pd
 import telebot
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
+import numpy as np
 from sklearn.neighbors import BallTree
 from sklearn.base import BaseEstimator
-import numpy as np
+from sklearn.pipeline import make_pipeline
 
-# In[2]:
+dialogs = pd.read_csv('dialogs.csv')
 
+vectorizer = TfidfVectorizer()
+vectorizer.fit(dialogs.message)
+matrix_big = vectorizer.transform(dialogs.message)
 
-token = '1608570088:AAHGWdarXJrIlowm6shDywfWLOBdpGU6oUo'
-
-
-# In[6]:
+svd = TruncatedSVD(n_components=500)
+svd.fit(matrix_big)
+matrix_small = svd.transform(matrix_big)
 
 
 def softmax(x):
@@ -37,28 +42,20 @@ class NeighborSampler(BaseEstimator):
                                            p=softmax(distance * self.temperature)))
         return self.y_[result]
 
-    # In[7]:
+ns = NeighborSampler()
+ns.fit(matrix_small, dialogs.answer)
+pipe = make_pipeline(vectorizer, svd, ns)
 
-
-pipe = joblib.load('pipe.pkl')
-
-# In[14]:
-
+token = '1608570088:AAHGWdarXJrIlowm6shDywfWLOBdpGU6oUo'
 
 bot = telebot.TeleBot(token)
-
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     bot.reply_to(message, f'Привет, {message.from_user.first_name}')
 
-
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message:True)
 def send_message(message):
     bot.reply_to(message, pipe.predict([message.text.lower()])[0])
-
-
-# In[15]:
-
 
 bot.polling()
